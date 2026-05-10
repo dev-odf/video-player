@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Custom Player</title>
+  <style>
+    body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
+    .player-container { position: relative; width: 100%; height: 100%; }
+    video { width: 100%; height: 100%; object-fit: contain; }
+    
+    .controls {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      padding: 15px; display: flex; gap: 15px;
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    .player-container:hover .controls { opacity: 1; }
+    button { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+    button:hover { background: rgba(255,255,255,0.4); }
+  </style>
+</head>
+<body>
+
+  <div class="player-container" id="playerContainer">
+    <video id="mainVideo" controlsList="nodownload"></video>
+    
+    <div class="controls">
+      <button id="playBtn">Play</button>
+      <button id="pipBtn">Picture-in-Picture</button>
+      <button id="fsBtn">Fullscreen</button>
+    </div>
+  </div>
+
+  <!-- Here is where we hook your JS file! -->
+  <script src="/player-logic.js"></script>
+
+</body>
+</html>
