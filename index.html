@@ -1,34 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VaaS API Platform</title>
-  <style>
-    body { font-family: system-ui, sans-serif; background: #0f0f11; color: #ededed; line-height: 1.6; padding: 40px; max-width: 800px; margin: 0 auto; }
-    h1 { color: #00ffcc; }
-    code { background: #222; padding: 2px 6px; border-radius: 4px; color: #ff9900; }
-    pre { background: #1a1a1a; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #333; }
-    .highlight { color: #00ffcc; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VaaS // Next-Gen Video SDK</title>
+    <meta name="theme-color" content="#00ffcc">
+    <script src="https://video-player-btg.pages.dev/player.js" defer></script>
+    <style>
+        :root {
+            --accent: #00ffcc;
+            --bg: #050505;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: #fafafa;
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Background Graphics */
+        body::before {
+            content: "";
+            position: fixed;
+            top: -10%;
+            left: -10%;
+            width: 40%;
+            height: 40%;
+            background: radial-gradient(circle, rgba(0, 255, 204, 0.08) 0%, transparent 70%);
+            z-index: -1;
+            filter: blur(50px);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+
+        /* Beta Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(0, 255, 204, 0.1);
+            color: var(--accent);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            margin-bottom: 24px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 204, 0.2); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 204, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 204, 0); }
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-weight: 800;
+            margin: 0 0 20px 0;
+            letter-spacing: -2px;
+            background: linear-gradient(180deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-text {
+            font-size: 1.25rem;
+            color: #888;
+            max-width: 600px;
+            margin-bottom: 60px;
+        }
+
+        /* Player Section */
+        .player-showcase {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+            margin-bottom: 100px;
+        }
+
+        /* Features Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 32px;
+            border-radius: 20px;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.5rem;
+            color: #fff;
+        }
+
+        .card p {
+            color: #888;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        /* Code Block */
+        .code-snippet {
+            background: #000;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #222;
+            font-family: 'Fira Code', monospace;
+            overflow-x: auto;
+            margin-top: 80px;
+            position: relative;
+        }
+
+        .code-snippet::before {
+            content: "Implementation";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: var(--accent);
+            color: #000;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        code { color: var(--accent); }
+        .comment { color: #555; }
+
+        footer {
+            margin-top: 150px;
+            text-align: center;
+            padding-bottom: 50px;
+            border-top: 1px solid var(--border);
+            padding-top: 50px;
+        }
+
+        .dev-tag {
+            color: #444;
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+    </style>
 </head>
 <body>
 
-  <h1>Welcome to the VaaS Player API</h1>
-  <p>The easiest way to embed a custom, feature-rich video player on your website.</p>
+<div class="container">
+    <div class="badge">Beta // v0.8.2</div>
+    
+    <h1>Video as <br>a Service.</h1>
+    <p class="hero-text">
+        A developer-first SDK for adaptive HLS streaming. High performance, 
+        multi-quality logic, and native DOM integration in a single package.
+    </p>
 
-  <h2>How to use it:</h2>
-  <p>You don't need iframes. Just follow these two simple steps.</p>
+    <div class="player-showcase">
+        <div class="vaas-player" data-video="video_package.zip"></div>
+    </div>
 
-  <h3>Step 1: Add the SDK to your website</h3>
-  <p>Place this script tag inside your HTML <code>&lt;head&gt;</code> or at the bottom of your <code>&lt;body&gt;</code>:</p>
-  <pre><code>&lt;script src="https://video-player-btg.pages.dev/player.js" defer&gt;&lt;/script&gt;</code></pre>
+    <div class="grid">
+        <div class="card">
+            <h3>Zip-Stream Engine</h3>
+            <p>Deploy high-resolution HLS packages as single .zip files. The engine extracts and streams in-memory to bypass server bloat.</p>
+        </div>
+        <div class="card">
+            <h3>Auto-Bitrate</h3>
+            <p>Smart detection of network bandwidth with seamless switching between quality levels (144p to 4K).</p>
+        </div>
+        <div class="card">
+            <h3>Zero Latency</h3>
+            <p>Built with Media Source Extensions (MSE) for near-instant playback using 5-second chunk optimization.</p>
+        </div>
+    </div>
 
-  <h3>Step 2: Place your video</h3>
-  <p>Wherever you want the video to appear, create a `div` with the class <span class="highlight">vaas-player</span> and pass your video URL to the <span class="highlight">data-video</span> attribute.</p>
-  <pre><code>&lt;div class="vaas-player" data-video="YOUR_VIDEO_URL_HERE.mp4"&gt;&lt;/div&gt;</code></pre>
+    <div class="code-snippet">
+        <code>
+            <span class="comment">// 1. Include the engine</span><br>
+            &lt;script src="https://vaas.dev/player.js" defer&gt;&lt;/script&gt;<br><br>
+            <span class="comment">// 2. Define the container</span><br>
+            &lt;div class="vaas-player" data-video="video_package.zip"&gt;&lt;/div&gt;
+        </code>
+    </div>
 
-  <p>That's it! Our script will automatically build a beautiful player around your video file.</p>
+    <footer>
+        <div class="dev-tag">System Under Active Development</div>
+        <p style="color: #666; font-size: 14px; margin-top: 10px;">VaaS is currently in private beta. Expect breaking changes.</p>
+    </footer>
+</div>
 
 </body>
 </html>
