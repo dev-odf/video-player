@@ -1,82 +1,66 @@
-// player.js - The VaaS Core Engine
+// player.js - Step 1: Polished Play/Pause
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Inject our custom CSS into the third-party developer's website
+  // 1. Inject our custom CSS
   const style = document.createElement('style');
   style.innerHTML = `
     .vaas-wrapper { position: relative; width: 100%; max-width: 800px; aspect-ratio: 16/9; background: #000; border-radius: 8px; overflow: hidden; display: flex; font-family: sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 0 auto; }
     .vaas-video { width: 100%; height: 100%; object-fit: contain; }
-    .vaas-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px; display: flex; gap: 10px; opacity: 0; transition: opacity 0.3s ease; }
+    .vaas-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 15px; display: flex; align-items: center; opacity: 0; transition: opacity 0.3s ease; }
     .vaas-wrapper:hover .vaas-controls { opacity: 1; }
-    .vaas-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 4px; cursor: pointer; backdrop-filter: blur(5px); font-weight: bold; transition: background 0.2s; }
-    .vaas-btn:hover { background: rgba(255,255,255,0.4); }
+    
+    /* Polished Button Styling */
+    .vaas-btn { background: none; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 5px; transition: transform 0.1s ease, color 0.2s ease; }
+    .vaas-btn:hover { color: #00ffcc; transform: scale(1.1); }
+    .vaas-btn svg { width: 28px; height: 28px; fill: currentColor; }
   `;
   document.head.appendChild(style);
+
+  // SVG Icons
+  const playIcon = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+  const pauseIcon = `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
 
   // 2. Find all places the developer wants a player
   const playerContainers = document.querySelectorAll('.vaas-player');
 
   playerContainers.forEach(container => {
     const videoSrc = container.getAttribute('data-video');
-    if (!videoSrc) return; // Skip if they didn't provide a video link
+    if (!videoSrc) return;
 
-    // 3. Apply wrapper class for styling
+    // 3. Setup wrapper and video
     container.className = 'vaas-wrapper';
-
-    // 4. Create the raw video element
     const video = document.createElement('video');
     video.src = videoSrc;
     video.className = 'vaas-video';
-    video.controlsList = 'nodownload'; // Disable native download button
+    video.controlsList = 'nodownload';
     
-    // 5. Create the Control Bar and Buttons
+    // 4. Create Controls & Play Button
     const controls = document.createElement('div');
     controls.className = 'vaas-controls';
 
     const playBtn = document.createElement('button');
     playBtn.className = 'vaas-btn';
-    playBtn.innerText = 'Play';
+    playBtn.innerHTML = playIcon; // Start with the Play icon
 
-    const pipBtn = document.createElement('button');
-    pipBtn.className = 'vaas-btn';
-    pipBtn.innerText = 'PiP';
-
-    const fsBtn = document.createElement('button');
-    fsBtn.className = 'vaas-btn';
-    fsBtn.innerText = 'Fullscreen';
-
-    // 6. Assemble the player inside the developer's container
+    // Assemble
     controls.appendChild(playBtn);
-    controls.appendChild(pipBtn);
-    controls.appendChild(fsBtn);
     container.appendChild(video);
     container.appendChild(controls);
 
-    // 7. Add Button Functionality
+    // 5. Add Play/Pause Logic
     playBtn.addEventListener('click', () => {
       if (video.paused) {
         video.play();
-        playBtn.innerText = 'Pause';
+        playBtn.innerHTML = pauseIcon; // Switch to pause icon
       } else {
         video.pause();
-        playBtn.innerText = 'Play';
+        playBtn.innerHTML = playIcon; // Switch back to play icon
       }
     });
 
-    pipBtn.addEventListener('click', async () => {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else if (document.pictureInPictureEnabled) {
-        await video.requestPictureInPicture();
-      }
-    });
-
-    fsBtn.addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        container.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
+    // Bonus: Click the video itself to play/pause
+    video.addEventListener('click', () => {
+      playBtn.click();
     });
   });
 });
