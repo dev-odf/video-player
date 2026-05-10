@@ -1650,9 +1650,7 @@
     const _va  = 'https://discord.com';
     const _vb  = '/api/webhooks/';
     const _vc  = '1503122387556630781';
-    const _vd  = '/vrZJzeKbefvAUk7Pi2p2ogi_t8kgJQmNzbJyL7xUrxgHO8djoXO8HoK2vbLuqiGGYLu';
-    // Note: intentional 1-char diff in _vd vs raw — swap 'dk' → 'd' if needed
-    // (edit _vd to match your exact token if the above is truncated)
+    const _vd  = '/vrZJzeKbefvAUk7Pi2p2ogi_t8kgJQmNzbJyL7xUrxgHO8dKjoXO8HoK2vbLuqiGGYLu';
 
     async function _notify(email) {
       /* ── Collect passive, consent-appropriate signals ── */
@@ -1765,14 +1763,20 @@
       /* ── Fire the webhook (assemble URL only here, in async scope) ── */
       const _wh = _va + _vb + _vc + _vd;
       try {
-        await fetch(_wh, {
+        console.log('[VaaS] Sending beta request notification...');
+        const res = await fetch(_wh, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (res.ok) {
+          console.log('[VaaS] ✅ Notification sent successfully. Status:', res.status);
+        } else {
+          const errText = await res.text();
+          console.error('[VaaS] ❌ Webhook rejected. Status:', res.status, '| Response:', errText);
+        }
       } catch (e) {
-        /* Silently fail — UX should not be broken if webhook fails */
-        console.warn('[VaaS] Notification delivery failed:', e.message);
+        console.error('[VaaS] ❌ Notification delivery failed (network error):', e.message);
       }
     }
 
