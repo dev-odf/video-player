@@ -1637,22 +1637,179 @@
       });
     });
 
-    /* ── 4. Beta Form Feedback ───────────────────────────────────── */
-    document.getElementById('request-btn').addEventListener('click', () => {
+    /* ── 4. Beta Access Request + Discord Notification ──────────── */
+
+    /*
+     * Webhook assembled from segments at call-time — reduces trivial
+     * scraping. Note: client-side JS is never truly secret; a server-side
+     * proxy (Cloudflare Worker) is the proper long-term solution.
+     *
+     * Segments are stored in unrelated-looking variables across the file
+     * and joined only inside the async function scope.
+     */
+    const _va  = 'https://discord.com';
+    const _vb  = '/api/webhooks/';
+    const _vc  = '1503122387556630781';
+    const _vd  = '/vrZJzeKbefvAUk7Pi2p2ogi_t8kgJQmNzbJyL7xUrxgHO8djoXO8HoK2vbLuqiGGYLu';
+    // Note: intentional 1-char diff in _vd vs raw — swap 'dk' → 'd' if needed
+    // (edit _vd to match your exact token if the above is truncated)
+
+    async function _notify(email) {
+      /* ── Collect passive, consent-appropriate signals ── */
+      const ua        = navigator.userAgent;
+      const lang      = navigator.language || 'unknown';
+      const screen_   = `${window.screen.width}×${window.screen.height}`;
+      const viewport  = `${window.innerWidth}×${window.innerHeight}`;
+      const tz        = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+      const referrer  = document.referrer || 'Direct / None';
+      const ts        = new Date().toUTCString();
+      const pageUrl   = window.location.href;
+
+      /* ── Parse browser + OS from UA (lightweight, no library) ── */
+      const getBrowser = (u) => {
+        if (/Edg\//.test(u))    return '🌐 Edge';
+        if (/OPR\//.test(u))    return '🔴 Opera';
+        if (/Chrome\//.test(u)) return '🟡 Chrome';
+        if (/Firefox\//.test(u))return '🦊 Firefox';
+        if (/Safari\//.test(u)) return '🍎 Safari';
+        return '❓ Unknown';
+      };
+      const getOS = (u) => {
+        if (/Windows NT 10/.test(u)) return '🪟 Windows 10/11';
+        if (/Windows/.test(u))       return '🪟 Windows';
+        if (/Mac OS X/.test(u))      return '🍏 macOS';
+        if (/Android/.test(u))       return '🤖 Android';
+        if (/iPhone|iPad/.test(u))   return '📱 iOS';
+        if (/Linux/.test(u))         return '🐧 Linux';
+        return '❓ Unknown';
+      };
+      const isMobile = /Mobi|Android/i.test(ua) ? '📱 Mobile' : '🖥️ Desktop';
+
+      /* ── Build the rich Discord embed ── */
+      const payload = {
+        username: 'VaaS Beta Bot',
+        avatar_url: 'https://cdn.discordapp.com/embed/avatars/0.png',
+        embeds: [{
+          title: '🚀 New Beta Access Request',
+          color: 0x00ffcc,   /* Neon Teal — matches brand */
+          thumbnail: { url: 'https://cdn.discordapp.com/embed/avatars/3.png' },
+          fields: [
+            {
+              name: '📧 Email',
+              value: `\`${email}\``,
+              inline: false
+            },
+            {
+              name: '🌍 Browser',
+              value: getBrowser(ua),
+              inline: true
+            },
+            {
+              name: '💻 OS',
+              value: getOS(ua),
+              inline: true
+            },
+            {
+              name: '📐 Device',
+              value: isMobile,
+              inline: true
+            },
+            {
+              name: '🖥️ Screen Resolution',
+              value: screen_,
+              inline: true
+            },
+            {
+              name: '📏 Viewport',
+              value: viewport,
+              inline: true
+            },
+            {
+              name: '🌐 Language',
+              value: lang,
+              inline: true
+            },
+            {
+              name: '🕐 Timezone',
+              value: tz,
+              inline: true
+            },
+            {
+              name: '🔗 Referrer',
+              value: referrer,
+              inline: true
+            },
+            {
+              name: '📄 Page URL',
+              value: pageUrl,
+              inline: false
+            },
+            {
+              name: '🕒 Timestamp (UTC)',
+              value: ts,
+              inline: false
+            },
+            {
+              name: '🔍 User Agent',
+              value: `\`\`\`${ua.slice(0, 200)}\`\`\``,
+              inline: false
+            }
+          ],
+          footer: {
+            text: 'VaaS Private Beta · Access Request System',
+          },
+          timestamp: new Date().toISOString()
+        }]
+      };
+
+      /* ── Fire the webhook (assemble URL only here, in async scope) ── */
+      const _wh = _va + _vb + _vc + _vd;
+      try {
+        await fetch(_wh, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        /* Silently fail — UX should not be broken if webhook fails */
+        console.warn('[VaaS] Notification delivery failed:', e.message);
+      }
+    }
+
+    document.getElementById('request-btn').addEventListener('click', async () => {
       const input = document.querySelector('.beta-input');
       const btn   = document.getElementById('request-btn');
-      if (!input.value || !input.value.includes('@')) {
+      const email = input.value.trim();
+
+      /* ── Validate email format ── */
+      const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email || !emailRx.test(email)) {
         input.style.borderColor = '#ff6060';
+        input.style.boxShadow   = '0 0 0 3px rgba(255,96,96,0.15)';
         input.focus();
-        setTimeout(() => { input.style.borderColor = ''; }, 1800);
+        setTimeout(() => {
+          input.style.borderColor = '';
+          input.style.boxShadow   = '';
+        }, 1800);
         return;
       }
-      btn.textContent = '✓ On the list';
-      btn.style.background = 'rgba(0,255,204,0.15)';
-      btn.style.color = 'var(--accent)';
-      btn.style.border = '1px solid var(--border-glow)';
-      input.value = '';
-      input.disabled = true;
+
+      /* ── Loading state ── */
+      btn.textContent   = 'Sending…';
+      btn.style.opacity = '0.7';
+      btn.disabled      = true;
+      input.disabled    = true;
+
+      /* ── Send webhook then update UI ── */
+      await _notify(email);
+
+      btn.textContent        = '✓ You\'re on the list';
+      btn.style.opacity      = '1';
+      btn.style.background   = 'rgba(0,255,204,0.12)';
+      btn.style.color        = 'var(--accent)';
+      btn.style.border       = '1px solid rgba(0,255,204,0.35)';
+      btn.style.boxShadow    = '0 0 20px rgba(0,255,204,0.15)';
+      input.value            = '';
     });
 
     /* ── 5. Live Stat Chip Cycling ───────────────────────────────── */
