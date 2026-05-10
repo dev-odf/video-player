@@ -1,33 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>VaaS Converter | Fix</title>
+    <meta charset="UTF-8">
+    <title>VaaS | HLS Zip Packager</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
-        .box { border: 2px dashed #444; padding: 40px; cursor: pointer; background: #1a1a1a; border-radius: 10px; }
-        .box:hover { border-color: #00ffcc; }
-        #log { margin-top: 20px; font-size: 12px; color: #888; text-align: left; background: #000; padding: 10px; height: 100px; overflow-y: auto; }
+        :root { --accent: #00ffcc; --bg: #0f0f11; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #fff; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+        .card { background: #1a1a1d; padding: 30px; border-radius: 12px; border: 1px solid #333; width: 100%; max-width: 500px; text-align: center; }
+        .drop-zone { border: 2px dashed #444; padding: 40px; border-radius: 8px; margin: 20px 0; cursor: pointer; }
+        .drop-zone:hover { border-color: var(--accent); background: rgba(0, 255, 204, 0.05); }
+        .btn { background: var(--accent); color: #000; padding: 12px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn:disabled { background: #444; cursor: wait; }
+        #log { margin-top: 20px; background: #000; padding: 15px; border-radius: 6px; height: 120px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; color: #00ffcc; border: 1px solid #222; }
     </style>
 </head>
 <body>
-    <h1>VaaS Video Converter</h1>
-    <div class="box" onclick="document.getElementById('fileInput').click()">
-        <p id="status">Click here to select your MP4 video</p>
-        <input type="file" id="fileInput" accept="video/mp4" style="display: none;">
+
+    <div class="card">
+        <h2 style="color: var(--accent)">VaaS Packager</h2>
+        <p>Convert MP4 to Multi-Quality ZIP</p>
+        
+        <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+            <span id="fileName">Select 1080p MP4</span>
+            <input type="file" id="fileInput" accept="video/mp4" style="display: none;">
+        </div>
+
+        <button class="btn" id="startBtn">Load Engine</button>
+        
+        <div id="log">Waiting for input...</div>
     </div>
-    <div id="log">Status: Waiting for file...</div>
 
     <script>
+        const { FFmpeg } = window.FFmpeg;
+        const { fetchFile, toBlobURL } = window.FFmpegUtil;
+        
+        let ffmpeg = null;
+        const startBtn = document.getElementById('startBtn');
         const fileInput = document.getElementById('fileInput');
-        const status = document.getElementById('status');
-        const log = document.getElementById('log');
+        const logEl = document.getElementById('log');
+
+        function logger(m) {
+            logEl.innerHTML += `<div>> ${m}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // Initialize FFmpeg
+        startBtn.onclick = async () => {
+            if (!ffmpeg) {
+                startBtn.disabled = true;
+                ffmpeg = new FFmpeg();
+                const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+                await ffmpeg.load({
+                    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+                });
+                logger("Engine Loaded.");
+                startBtn.innerText = "Package to ZIP";
+                startBtn.disabled = false;
+                return;
+            }
+
+            if (!fileInput.files[0]) return alert("Select a file!");
+            processVideo();
+        };
+
+        async function processVideo() {
+            startBtn.disabled = true;
+            const file = fileInput.files[0];
+            
+            logger("Reading Video...");
+            await ffmpeg.writeFile('input.mp4', await fetchFile(file));
+
+            logger("Transcoding & Chunking... (720p + 360p)");
+            
+            // This command creates a Master Playlist and two sub-streams
+            await ffmpeg.exec([
+                '-i', 'input.mp4',
+                '-map', '0:v', '-map', '0:a', '-map', '0:v', '-map', '0:a',
+                '-s:v:0', '1280x720', '-c:v:0', 'libx264', '-b:v:0', '1500k',
+                '-s:v:1', '640x360', '-c:v:1', 'libx264', '-b:v:1', '600k',
+                '-c:a', 'aac', '-f', 'hls',
+                '-hls_time', '6',
+                '-hls_playlist_type', 'vod',
+                '-master_pl_name', 'master.m3u8',
+                '-var_stream_map', 'v:0,a:0 v:1,a:1',
+                'stream_%v.m3u8'
+            ]);
+
+            logger("Packaging into ZIP...");
+            const zip = new JSZip();
+            const files = await ffmpeg.listDir('.');
+            
+            for (const f of files) {
+                if (f.name.endsWith('.m3u8') || f.name.endsWith('.ts')) {
+                    const data = await ffmpeg.readFile(f.name);
+                    zip.file(f.name, data);
+                }
+            }
+
+            const content = await zip.generateAsync({type: "blob"});
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "video_package.zip";
+            a.click();
+
+            logger("DONE! Upload 'video_package.zip' to your host.");
+            startBtn.disabled = false;
+        }
 
         fileInput.onchange = (e) => {
-            if (e.target.files.length > 0) {
-                const name = e.target.files[0].name;
-                status.innerText = "Selected: " + name;
-                log.innerHTML += `<div>Selected ${name}. Now you can start the conversion logic.</div>`;
-            }
+            document.getElementById('fileName').innerText = e.target.files[0].name;
         };
     </script>
 </body>
